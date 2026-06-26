@@ -1,8 +1,13 @@
 ﻿"use strict";
 
+// Replace these with your EmailJS details from https://www.emailjs.com/.
+const EMAILJS_PUBLIC_KEY = "YOUR_EMAILJS_PUBLIC_KEY";
+const EMAILJS_SERVICE_ID = "YOUR_EMAILJS_SERVICE_ID";
+const EMAILJS_TEMPLATE_ID = "YOUR_EMAILJS_TEMPLATE_ID";
+
 function initReveal() {
   const revealEls = document.querySelectorAll(
-    ".about__grid, .about__cta, .team-card, .service-card, .portfolio-card, .testimonial-card, .contact__card"
+    ".about__grid, .about__cta, .team-card, .service-card, .process__cta, .process-step, .portfolio-card, .feedback__form, .feedback__info, .why-card, .why-nova__cta, .contact__card"
   );
 
   revealEls.forEach(el => el.classList.add("reveal"));
@@ -61,6 +66,69 @@ function initSmoothScroll() {
   });
 }
 
+function initFeedbackForm() {
+  const form = document.getElementById("feedbackForm");
+  const submitBtn = document.getElementById("feedbackSubmit");
+  const formMsg = document.getElementById("feedbackMsg");
+
+  if (!form || !submitBtn || !formMsg) return;
+
+  if (window.emailjs && EMAILJS_PUBLIC_KEY !== "YOUR_EMAILJS_PUBLIC_KEY") {
+    window.emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+  }
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const name = document.getElementById("feedbackName").value.trim();
+    const email = document.getElementById("feedbackEmail").value.trim();
+    const subject = document.getElementById("feedbackSubject").value.trim();
+    const message = document.getElementById("feedbackMessage").value.trim();
+
+    if (!name || !email || !subject || !message) {
+      showFeedbackMessage(
+        "Please fill in all required fields before submitting.",
+        false
+      );
+      shake(submitBtn);
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      showFeedbackMessage("Please enter a valid email address.", false);
+      shake(submitBtn);
+      return;
+    }
+
+    if (
+      !window.emailjs ||
+      EMAILJS_PUBLIC_KEY === "YOUR_EMAILJS_PUBLIC_KEY" ||
+      EMAILJS_SERVICE_ID === "YOUR_EMAILJS_SERVICE_ID" ||
+      EMAILJS_TEMPLATE_ID === "YOUR_EMAILJS_TEMPLATE_ID"
+    ) {
+      showFeedbackMessage("Something went wrong. Please try again later.", false);
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+
+    try {
+      await window.emailjs.sendForm(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, form);
+      showFeedbackMessage(
+        "Thank you! Your feedback has been sent successfully. We appreciate your time.",
+        true
+      );
+      form.reset();
+    } catch (error) {
+      showFeedbackMessage("Something went wrong. Please try again later.", false);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Feedback';
+    }
+  });
+}
+
 function initContactForm() {
   const form = document.getElementById("contactForm");
   const submitBtn = document.getElementById("submitBtn");
@@ -74,16 +142,15 @@ function initContactForm() {
     const name = document.getElementById("nameInput").value.trim();
     const email = document.getElementById("emailInput").value.trim();
     const type = document.getElementById("projectType").value;
-    const budget = document.getElementById("projectBudget").value;
     const message = document.getElementById("descInput").value.trim();
 
-    if (!name || !email || !type || !budget || !message) {
+    if (!name || !email || !type || !message) {
       showFormMessage("Please fill in all fields before submitting.", false);
       shake(submitBtn);
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!isValidEmail(email)) {
       showFormMessage("Please enter a valid email address.", false);
       shake(submitBtn);
       return;
@@ -104,12 +171,25 @@ function initContactForm() {
   });
 }
 
+function showFeedbackMessage(message, isSuccess) {
+  const formMsg = document.getElementById("feedbackMsg");
+  if (!formMsg) return;
+
+  formMsg.classList.toggle("is-success", isSuccess);
+  formMsg.style.color = isSuccess ? "#22c55e" : "#ef4444";
+  formMsg.textContent = message;
+}
+
 function showFormMessage(message, isSuccess) {
   const formMsg = document.getElementById("formMsg");
   if (!formMsg) return;
 
   formMsg.style.color = isSuccess ? "#22c55e" : "#ef4444";
   formMsg.textContent = message;
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function shake(el) {
@@ -146,6 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initSmoothScroll();
   initReveal();
   initActiveNav();
+  initFeedbackForm();
   initContactForm();
   initHeroPhoto();
 });
